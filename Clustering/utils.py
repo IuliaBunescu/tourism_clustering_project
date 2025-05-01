@@ -119,63 +119,77 @@ def computeEvaluationMeasures(data, cluster_labels):
 # We identified a small number of countries that significantly deviate from global patterns in the dataset. 
 # These outliers are not part of any cluster, indicating that their socio-economic or environmental profiles differ substantially from the rest.
 
+def preprocess_data_dbscan(df):
+    features = df.drop(columns=["CountryName", "CountryCode"])
+    scaler = StandardScaler()
+    scaled_features = scaler.fit_transform(features)
+    return scaled_features
 
-# Extract features & normalize the features & run  with tuned eps and min_samples
-features = df.drop(columns=["CountryName", "CountryCode"])
-scaler = StandardScaler()
-scaled_features = scaler.fit_transform(features)
+def apply_dbscan(scaled_data, eps=3.5, min_samples=2):
+    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+    labels = dbscan.fit_predict(scaled_data)
+    return labels
 
-eps_value = 3.5          
-min_samples_value = 2    
+def plot_pca_dbscan(df, scaled_data, labels):
+    pca = PCA(n_components=2)
+    pca_components = pca.fit_transform(scaled_data)
 
-dbscan = DBSCAN(eps=eps_value, min_samples=min_samples_value)
-labels = dbscan.fit_predict(scaled_features)
+    plt.figure(figsize=(10, 6))
+    colors = ['#1f77b4' if label != -1 else '#ff0000' for label in labels]
+    plt.scatter(pca_components[:, 0], pca_components[:, 1], c=colors, s=80, edgecolors='k')
 
-# PCA Visualization
-pca = PCA(n_components=2)
-pca_components = pca.fit_transform(scaled_features)
+    for i, country in enumerate(df["CountryName"]):
+        color = 'red' if labels[i] == -1 else 'black'
+        plt.annotate(country, (pca_components[i, 0], pca_components[i, 1]), fontsize=8, color=color)
 
-plt.figure(figsize=(10, 6))
-colors = ['#1f77b4' if label != -1 else '#ff0000' for label in labels]
-plt.scatter(pca_components[:, 0], pca_components[:, 1], c=colors, s=80, edgecolors='k')
+    plt.title("DBSCAN Outlier Detection - PCA")
+    plt.xlabel("PCA Component 1")
+    plt.ylabel("PCA Component 2")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
-for i, country in enumerate(df["CountryName"]):
-    color = 'red' if labels[i] == -1 else 'black'
-    plt.annotate(country, (pca_components[i, 0], pca_components[i, 1]), fontsize=8, color=color)
+def plot_tsne_dbscan(df, scaled_data, labels):
+    tsne = TSNE(n_components=2, perplexity=5, random_state=42)
+    tsne_components = tsne.fit_transform(scaled_data)
 
-plt.title("DBSCAN Outlier Detection - PCA")
-plt.xlabel("PCA Component 1")
-plt.ylabel("PCA Component 2")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+    plt.figure(figsize=(10, 6))
+    colors = ['#1f77b4' if label != -1 else '#ff0000' for label in labels]
+    plt.scatter(tsne_components[:, 0], tsne_components[:, 1], c=colors, s=80, edgecolors='k')
 
-# T-SNE Visualization
-tsne = TSNE(n_components=2, perplexity=5, random_state=42)
-tsne_components = tsne.fit_transform(scaled_features)
+    for i, country in enumerate(df["CountryName"]):
+        color = 'red' if labels[i] == -1 else 'black'
+        plt.annotate(country, (tsne_components[i, 0], tsne_components[i, 1]), fontsize=8, color=color)
 
-plt.figure(figsize=(10, 6))
-plt.scatter(tsne_components[:, 0], tsne_components[:, 1], c=colors, s=80, edgecolors='k')
+    plt.title("DBSCAN Outlier Detection - T-SNE")
+    plt.xlabel("T-SNE Dimension 1")
+    plt.ylabel("T-SNE Dimension 2")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
-for i, country in enumerate(df["CountryName"]):
-    color = 'red' if labels[i] == -1 else 'black'
-    plt.annotate(country, (tsne_components[i, 0], tsne_components[i, 1]), fontsize=8, color=color)
+def get_outliers_dbscan(df, labels):
+    return df[labels == -1][["CountryName", "CountryCode"]]
 
-plt.title("DBSCAN Outlier Detection - T-SNE")
-plt.xlabel("T-SNE Dimension 1")
-plt.ylabel("T-SNE Dimension 2")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+def get_cleaned_dataset_dbscan(df, labels):
+    return df[labels != -1].copy()
 
-# List outlier countries
-outlier_countries = df[labels == -1][["CountryName", "CountryCode"]]
-print("\n Outlier Countries Detected:")
-print(outlier_countries)
-
-# Create cleaned dataset
-outlier_df = df[labels != -1].copy()
-print(f"\n Cleaned dataset contains {len(outlier_df)} countries (out of {len(df)})")
+# Main processing function
+def analyze_outliers(df):
+    scaled_data = preprocess_data_dbscan(df)
+    labels = apply_dbscan(scaled_data)
+    
+    plot_pca(df, scaled_data, labels)
+    plot_tsne(df, scaled_data, labels)
+    
+    outliers = get_outliers_dbscan(df, labels)
+    print("\nOutlier Countries Detected:")
+    print(outliers)
+    
+    cleaned_df = get_cleaned_dataset_dbscan(df, labels)
+    print(f"\nCleaned dataset contains {len(cleaned_df)} countries (out of {len(df)})")
+    
+    return outliers, cleaned_df
 
 ###############################################################################################################################################################################################################################
 ################################################################################################### HIERARCHICAL CLUSTERING ###################################################################################################
