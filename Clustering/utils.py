@@ -19,14 +19,6 @@ from sklearn.metrics import (
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler
 
-df = pd.read_csv("../Data/final_cleaned_dataset.csv")
-
-"""
-Returns a list of silhouette score for results of k- Means for different k values (from 2 to 10)
-Param: @param number_clustes - number of clusters
-       @df_features data frame where we apply the k-Means algorithm
-"""
-
 
 def getSilhouetteScoreAndInertiaForKMeans(number_clusters, df_features):
     inertia = []
@@ -66,6 +58,7 @@ def plotValuesBasedOnClusterNumbers(
 def applyTSNE(
     data,
     cluster_labels,
+    df,
 ):
     tsne = TSNE(n_components=2, perplexity=30, random_state=42)
     X_tsne = tsne.fit_transform(data)
