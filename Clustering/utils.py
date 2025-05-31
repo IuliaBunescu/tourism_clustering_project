@@ -1,25 +1,23 @@
-import pandas as pd
-import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
-from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
-from scipy.stats import spearmanr
-from sklearn.cluster import DBSCAN
-from sklearn.metrics import silhouette_score
-from sklearn.discriminant_analysis import StandardScaler
-from sklearn.neighbors import NearestNeighbors
-from sklearn.metrics import pairwise_distances
-from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.spatial.distance import cdist
-from sklearn.cluster import AgglomerativeClustering, KMeans
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
-from sklearn.manifold import TSNE
+from scipy.stats import spearmanr
+from sklearn.cluster import DBSCAN, AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import StandardScaler
+from sklearn.manifold import TSNE
+from sklearn.metrics import (
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    pairwise_distances,
+    silhouette_score,
+)
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import MinMaxScaler
 
 df = pd.read_csv("../Data/final_cleaned_dataset.csv")
 
@@ -28,6 +26,8 @@ Returns a list of silhouette score for results of k- Means for different k value
 Param: @param number_clustes - number of clusters
        @df_features data frame where we apply the k-Means algorithm
 """
+
+
 def getSilhouetteScoreAndInertiaForKMeans(number_clusters, df_features):
     inertia = []
     silhouette_scores = []
@@ -39,6 +39,7 @@ def getSilhouetteScoreAndInertiaForKMeans(number_clusters, df_features):
         inertia.append(kmeans.inertia_)
     return silhouette_scores, inertia
 
+
 """
 Plots the silhouette score for each cluster 
 Param: @number_clusters - number of clusters
@@ -47,9 +48,13 @@ Param: @number_clusters - number of clusters
        @ylabel - Title of the y axis from the plot
        @title - Title of the whole figure
 """
-def plotValuesBasedOnClusterNumbers(number_clusters, silhouette_values, xlabel, ylabel, title):
+
+
+def plotValuesBasedOnClusterNumbers(
+    number_clusters, silhouette_values, xlabel, ylabel, title
+):
     plt.figure(figsize=(10, 6))
-    plt.plot(number_clusters, silhouette_values, marker='o')
+    plt.plot(number_clusters, silhouette_values, marker="o")
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
@@ -58,15 +63,18 @@ def plotValuesBasedOnClusterNumbers(number_clusters, silhouette_values, xlabel, 
 
 
 # Apply t-SNE for 2D projection
-def applyTSNE(data, cluster_labels, df):
+def applyTSNE(
+    data,
+    cluster_labels,
+):
     tsne = TSNE(n_components=2, perplexity=30, random_state=42)
     X_tsne = tsne.fit_transform(data)
     plt.figure(figsize=(10, 8))
-    plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=cluster_labels, cmap='viridis', s=30)
-    plt.title('t-SNE Visualization of Clusters')
-    plt.xlabel('TSNE-1')
-    plt.ylabel('TSNE-2')
-    plt.colorbar(label='Cluster')
+    plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=cluster_labels, cmap="viridis", s=30)
+    plt.title("t-SNE Visualization of Clusters")
+    plt.xlabel("TSNE-1")
+    plt.ylabel("TSNE-2")
+    plt.colorbar(label="Cluster")
 
     # Add country names as labels
     for i, country in enumerate(df["CountryName"]):
@@ -74,9 +82,12 @@ def applyTSNE(data, cluster_labels, df):
     plt.grid(True)
     plt.show()
 
+
 """
 Computed the Dunn index
 """
+
+
 def dunn_index(X, labels):
     unique_cluster_labels = np.unique(labels)
     n_clusters = len(unique_cluster_labels)
@@ -89,9 +100,9 @@ def dunn_index(X, labels):
             intra_dists.append(np.max(distances))
         else:
             intra_dists.append(0)
- 
+
     max_intra = np.max(intra_dists)
- 
+
     # Compute inter-cluster distances (min between each pair of clusters)
     inter_dists = []
     for i in range(n_clusters):
@@ -100,24 +111,29 @@ def dunn_index(X, labels):
             cluster_j = X[labels == unique_cluster_labels[j]]
             distances = pairwise_distances(cluster_i, cluster_j)
             inter_dists.append(np.min(distances))
- 
+
     min_inter = np.min(inter_dists)
- 
+
     return min_inter / max_intra if max_intra != 0 else 0
+
 
 """
 Compute evaluation measures for a data frame considering the resulted cluster labels
 """
+
+
 def computeEvaluationMeasures(data, cluster_labels):
     silhouette = silhouette_score(data, cluster_labels)
     dunn = dunn_index(data, cluster_labels)
     davies = davies_bouldin_score(data, cluster_labels)
     calinski = calinski_harabasz_score(data, cluster_labels)
     return silhouette, dunn, davies, calinski
-    
+
+
 ######## DBSCAN CLUSTERING
-# We identified a small number of countries that significantly deviate from global patterns in the dataset. 
+# We identified a small number of countries that significantly deviate from global patterns in the dataset.
 # These outliers are not part of any cluster, indicating that their socio-economic or environmental profiles differ substantially from the rest.
+
 
 def preprocess_data_dbscan(df):
     features = df.drop(columns=["CountryName", "CountryCode"])
@@ -125,22 +141,31 @@ def preprocess_data_dbscan(df):
     scaled_features = scaler.fit_transform(features)
     return scaled_features
 
+
 def apply_dbscan(scaled_data, eps=3.5, min_samples=2):
     dbscan = DBSCAN(eps=eps, min_samples=min_samples)
     labels = dbscan.fit_predict(scaled_data)
     return labels
+
 
 def plot_pca_dbscan(df, scaled_data, labels):
     pca = PCA(n_components=2)
     pca_components = pca.fit_transform(scaled_data)
 
     plt.figure(figsize=(10, 6))
-    colors = ['#1f77b4' if label != -1 else '#ff0000' for label in labels]
-    plt.scatter(pca_components[:, 0], pca_components[:, 1], c=colors, s=80, edgecolors='k')
+    colors = ["#1f77b4" if label != -1 else "#ff0000" for label in labels]
+    plt.scatter(
+        pca_components[:, 0], pca_components[:, 1], c=colors, s=80, edgecolors="k"
+    )
 
     for i, country in enumerate(df["CountryName"]):
-        color = 'red' if labels[i] == -1 else 'black'
-        plt.annotate(country, (pca_components[i, 0], pca_components[i, 1]), fontsize=8, color=color)
+        color = "red" if labels[i] == -1 else "black"
+        plt.annotate(
+            country,
+            (pca_components[i, 0], pca_components[i, 1]),
+            fontsize=8,
+            color=color,
+        )
 
     plt.title("DBSCAN Outlier Detection - PCA")
     plt.xlabel("PCA Component 1")
@@ -149,17 +174,25 @@ def plot_pca_dbscan(df, scaled_data, labels):
     plt.tight_layout()
     plt.show()
 
+
 def plot_tsne_dbscan(df, scaled_data, labels):
     tsne = TSNE(n_components=2, perplexity=5, random_state=42)
     tsne_components = tsne.fit_transform(scaled_data)
 
     plt.figure(figsize=(10, 6))
-    colors = ['#1f77b4' if label != -1 else '#ff0000' for label in labels]
-    plt.scatter(tsne_components[:, 0], tsne_components[:, 1], c=colors, s=80, edgecolors='k')
+    colors = ["#1f77b4" if label != -1 else "#ff0000" for label in labels]
+    plt.scatter(
+        tsne_components[:, 0], tsne_components[:, 1], c=colors, s=80, edgecolors="k"
+    )
 
     for i, country in enumerate(df["CountryName"]):
-        color = 'red' if labels[i] == -1 else 'black'
-        plt.annotate(country, (tsne_components[i, 0], tsne_components[i, 1]), fontsize=8, color=color)
+        color = "red" if labels[i] == -1 else "black"
+        plt.annotate(
+            country,
+            (tsne_components[i, 0], tsne_components[i, 1]),
+            fontsize=8,
+            color=color,
+        )
 
     plt.title("DBSCAN Outlier Detection - T-SNE")
     plt.xlabel("T-SNE Dimension 1")
@@ -168,32 +201,264 @@ def plot_tsne_dbscan(df, scaled_data, labels):
     plt.tight_layout()
     plt.show()
 
+
 def get_outliers_dbscan(df, labels):
     return df[labels == -1][["CountryName", "CountryCode"]]
 
+
 def get_cleaned_dataset_dbscan(df, labels):
     return df[labels != -1].copy()
+
 
 # Main processing function
 def analyze_outliers(df):
     scaled_data = preprocess_data_dbscan(df)
     labels = apply_dbscan(scaled_data)
-    
+
     plot_pca(df, scaled_data, labels)
     plot_tsne(df, scaled_data, labels)
-    
+
     outliers = get_outliers_dbscan(df, labels)
     print("\nOutlier Countries Detected:")
     print(outliers)
-    
+
     cleaned_df = get_cleaned_dataset_dbscan(df, labels)
     print(f"\nCleaned dataset contains {len(cleaned_df)} countries (out of {len(df)})")
-    
+
     return outliers, cleaned_df
+
+
+def detect_dbscan_outliers(
+    df: pd.DataFrame,
+    eps_value: float = 3.5,
+    min_samples_value: int = 2,
+    perplexity: float = 5,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """
+    Detects DBSCAN outliers in an already scaled dataset.
+    Assumes df has 'CountryName' and 'CountryCode', and the rest are scaled features.
+    Returns a DataFrame of detected outlier countries and shows PCA and T-SNE plots.
+
+    Parameters:
+    - df: pd.DataFrame
+    - eps_value: DBSCAN eps parameter (default=3.5)
+    - min_samples_value: DBSCAN min_samples parameter (default=2)
+    - perplexity: T-SNE perplexity (default=5)
+    - random_state: Random seed for T-SNE (default=42)
+
+    Returns:
+    - pd.DataFrame with outlier countries (label == -1)
+    """
+    # Work on a copy
+    df_copy = df.copy()
+
+    # Extract already scaled features
+    features = df_copy.drop(columns=["CountryName", "CountryCode"])
+
+    # DBSCAN clustering
+    dbscan = DBSCAN(eps=eps_value, min_samples=min_samples_value)
+    labels = dbscan.fit_predict(features)
+
+    # PCA for visualization
+    pca = PCA(n_components=2)
+    pca_components = pca.fit_transform(features)
+
+    plt.figure(figsize=(10, 6))
+    colors = ["#1f77b4" if label != -1 else "#ff0000" for label in labels]
+    plt.scatter(
+        pca_components[:, 0], pca_components[:, 1], c=colors, s=80, edgecolors="k"
+    )
+
+    for i, country in enumerate(df_copy["CountryName"]):
+        color = "red" if labels[i] == -1 else "black"
+        plt.annotate(
+            country,
+            (pca_components[i, 0], pca_components[i, 1]),
+            fontsize=8,
+            color=color,
+        )
+
+    plt.title("DBSCAN Outlier Detection - PCA")
+    plt.xlabel("PCA Component 1")
+    plt.ylabel("PCA Component 2")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    # T-SNE for visualization
+    tsne = TSNE(n_components=2, perplexity=perplexity, random_state=random_state)
+    tsne_components = tsne.fit_transform(features)
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(
+        tsne_components[:, 0], tsne_components[:, 1], c=colors, s=80, edgecolors="k"
+    )
+
+    for i, country in enumerate(df_copy["CountryName"]):
+        color = "red" if labels[i] == -1 else "black"
+        plt.annotate(
+            country,
+            (tsne_components[i, 0], tsne_components[i, 1]),
+            fontsize=8,
+            color=color,
+        )
+
+    plt.title("DBSCAN Outlier Detection - T-SNE")
+    plt.xlabel("T-SNE Dimension 1")
+    plt.ylabel("T-SNE Dimension 2")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    # Output outliers
+    outlier_countries = df_copy[labels == -1][["CountryName", "CountryCode"]]
+    print("\nOutlier Countries Detected:")
+    print(outlier_countries)
+
+    return outlier_countries
+
+
+def detect_kmeans_outliers(
+    df: pd.DataFrame,
+    cluster_range: range = range(2, 11),
+    random_state: int = 43,
+    n_init: int = 10,
+    max_iter: int = 1000,
+    outlier_percentile: float = 95,
+) -> pd.DataFrame:
+    """
+    Performs K-Means–based outlier detection on an already-scaled dataset.
+    Assumes df contains "CountryName", "CountryCode", and the rest of columns are scaled numerical features.
+    1) Computes silhouette scores and inertia for k in `cluster_range`.
+    2) Plots Silhouette vs. k and Inertia vs. k (Elbow).
+    3) Chooses best_k based on the maximum inertia value (as in the provided snippet).
+    4) Runs K-Means with best_k, computes each point’s distance to its centroid,
+       and flags the top `outlier_percentile`% as outliers.
+    5) Produces a PCA scatterplot (2D) with outliers in red and inliers in blue, annotating country names.
+    6) Prints and returns a DataFrame of outlier countries (CountryName & CountryCode).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame. Must contain "CountryName" and "CountryCode" plus only scaled numerical features.
+    cluster_range : range, optional (default=range(2, 11))
+        Range of k values to evaluate (e.g., 2 through 10).
+    random_state : int, optional (default=43)
+        Random state for KMeans.
+    n_init : int, optional (default=10)
+        Number of initializations for KMeans.
+    max_iter : int, optional (default=1000)
+        Maximum iterations for KMeans.
+    outlier_percentile : float, optional (default=95)
+        Percentile cutoff for labeling outliers (e.g., 95 means top 5% farthest become outliers).
+
+    Returns
+    -------
+    outlier_countries : pd.DataFrame
+        DataFrame of detected outlier countries with columns ["CountryName", "CountryCode"].
+    """
+    # 0) Make a copy so the original df is not modified
+    df_copy = df.copy()
+
+    # 1) Extract scaled numerical features (drop CountryName and CountryCode)
+    numerical_features_df = df_copy.drop(columns=["CountryName", "CountryCode"])
+
+    # 2) Compute silhouette scores and inertia for each k in cluster_range
+    silhouette_scores, inertia = getSilhouetteScoreAndInertiaForKMeans(
+        cluster_range, numerical_features_df
+    )
+
+    # 3) Plot Silhouette Score vs. Number of Clusters
+    plotValuesBasedOnClusterNumbers(
+        cluster_range,
+        silhouette_scores,
+        "Number of Clusters",
+        "Silhouette Score",
+        "Silhouette Score vs Number of Clusters",
+    )
+
+    # 4) Plot Inertia (Elbow) vs. Number of Clusters
+    plotValuesBasedOnClusterNumbers(
+        cluster_range,
+        inertia,
+        "Number of Clusters",
+        "Inertia",
+        "Elbow Method vs Number of Clusters",
+    )
+
+    # 5) Choose best_k based on max inertia (as per provided snippet)
+    best_k = cluster_range[list(inertia).index(max(inertia))]
+
+    # 6) Run final K-Means
+    kmeans_final = KMeans(
+        n_clusters=best_k, random_state=random_state, n_init=n_init, max_iter=max_iter
+    )
+    cluster_labels = kmeans_final.fit_predict(numerical_features_df)
+
+    # 7) Compute distances from each point to its assigned centroid
+    centroids = kmeans_final.cluster_centers_
+    distances = np.linalg.norm(
+        numerical_features_df.values - centroids[cluster_labels], axis=1
+    )
+
+    # 8) Define outliers as those above the specified percentile threshold
+    threshold = np.percentile(distances, outlier_percentile)
+    outliers_mask = distances > threshold
+
+    # 9) PCA for 2D visualization
+    pca = PCA(n_components=2)
+    pca_components = pca.fit_transform(numerical_features_df)
+
+    plt.figure(figsize=(10, 6))
+    # Color: red for outliers, blue for inliers
+    colors = ["red" if outliers_mask[i] else "blue" for i in range(len(outliers_mask))]
+    plt.scatter(
+        pca_components[:, 0], pca_components[:, 1], c=colors, s=80, edgecolors="k"
+    )
+
+    # Annotate each country
+    for i, country in enumerate(df_copy["CountryName"]):
+        label_color = "red" if outliers_mask[i] else "blue"
+        plt.annotate(
+            country,
+            (pca_components[i, 0], pca_components[i, 1]),
+            fontsize=8,
+            color=label_color,
+        )
+
+    plt.title("Outlier Detection via K-Means (Red = Outliers, Blue = Inliers)")
+    plt.xlabel("PCA Component 1")
+    plt.ylabel("PCA Component 2")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    # 10) Collect and print outlier countries
+    outlier_countries = df_copy.loc[outliers_mask, ["CountryName", "CountryCode"]]
+    print("Outlier Countries:")
+    print(outlier_countries["CountryName"].to_list())
+
+    indices = {}
+    indices["Davies-Bouldin Index"] = davies_bouldin_score(
+        numerical_features_df, cluster_labels
+    )
+    indices["Calinski-Harabasz Index"] = calinski_harabasz_score(
+        numerical_features_df, cluster_labels
+    )
+    indices["Dunn Index"] = compute_dunn_index(numerical_features_df, cluster_labels)
+
+    print("\nValidation Indices:")
+    for key, value in indices.items():
+        print(f"{key}: {value}")
+
+    return outlier_countries, cluster_labels, indices
+
 
 ###############################################################################################################################################################################################################################
 ################################################################################################### HIERARCHICAL CLUSTERING ###################################################################################################
 ###############################################################################################################################################################################################################################
+
 
 def remove_redundant_features(data, corr_df, pval_df, corr_threshold, pval_threshold):
     """
@@ -226,7 +491,9 @@ def remove_redundant_features(data, corr_df, pval_df, corr_threshold, pval_thres
     selected_features = [f for f in features if f not in to_drop]
     reduced_data = data[selected_features].copy()
 
-    print("Features dropped due to high correlation ({}):".format(len(to_drop)), to_drop)
+    print(
+        "Features dropped due to high correlation ({}):".format(len(to_drop)), to_drop
+    )
     print("Selected features ({}):".format(len(selected_features)), selected_features)
     return reduced_data, selected_features
 
@@ -242,7 +509,7 @@ def manual_feature_drop(data, features_to_drop):
     Returns:
       data_reduced: DataFrame with the specified features removed.
     """
-    data_reduced = data.drop(columns=list(features_to_drop), errors='ignore')
+    data_reduced = data.drop(columns=list(features_to_drop), errors="ignore")
     print("Manually dropped features:", features_to_drop)
     return data_reduced
 
@@ -265,14 +532,14 @@ def compute_dunn_index(X, labels):
     min_intercluster = np.inf
     for i in range(len(clusters)):
         for j in range(i + 1, len(clusters)):
-            distances = cdist(clusters[i], clusters[j], metric='euclidean')
+            distances = cdist(clusters[i], clusters[j], metric="euclidean")
             min_intercluster = min(min_intercluster, distances.min())
 
     # Compute maximum intra-cluster distance (cluster diameter)
     max_intracluster = 0
     for cluster in clusters:
         if len(cluster) > 1:
-            intra_dists = cdist(cluster, cluster, metric='euclidean')
+            intra_dists = cdist(cluster, cluster, metric="euclidean")
             max_intracluster = max(max_intracluster, intra_dists.max())
 
     return min_intercluster / max_intracluster if max_intracluster > 0 else np.nan
@@ -298,7 +565,9 @@ def plot_silhouette_scores(X, k_range=range(2, 11)):
         silhouette_scores[k] = score
 
     plt.figure(figsize=(8, 5))
-    plt.plot(list(silhouette_scores.keys()), list(silhouette_scores.values()), marker='o')
+    plt.plot(
+        list(silhouette_scores.keys()), list(silhouette_scores.values()), marker="o"
+    )
     plt.xlabel("Number of clusters")
     plt.ylabel("Silhouette Score")
     plt.title("Silhouette Scores vs. Number of Clusters")
@@ -326,7 +595,7 @@ def plot_elbow_method(X, k_range=range(1, 11)):
         inertias[k] = kmeans.inertia_
 
     plt.figure(figsize=(8, 5))
-    plt.plot(list(inertias.keys()), list(inertias.values()), marker='o')
+    plt.plot(list(inertias.keys()), list(inertias.values()), marker="o")
     plt.xlabel("Number of clusters")
     plt.ylabel("KMeans Inertia")
     plt.title("Elbow Method: Inertia vs. Number of Clusters")
@@ -344,7 +613,7 @@ def plot_multiple_dendrograms(X, countries=None, max_k=10):
       countries: DataFrame with a "CountryCode" column for leaf labels (optional).
       max_k: Maximum number of clusters (k value) to plot.
     """
-    Z = linkage(X, method='ward')
+    Z = linkage(X, method="ward")
     # Create subplots (using 5 rows and 2 columns for k=1 to 10)
     fig, axs = plt.subplots(nrows=5, ncols=2, figsize=(24, 40))
     axs = axs.flatten()
@@ -357,19 +626,29 @@ def plot_multiple_dendrograms(X, countries=None, max_k=10):
             cut_threshold = Z[-(k - 1), 2]
 
         # Plot dendrogram for current k
-        dendrogram(Z,
-                   labels=(countries["CountryCode"].values if (
-                           countries is not None and "CountryCode" in countries.columns) else None),
-                   leaf_rotation=90,
-                   color_threshold=cut_threshold,
-                   ax=ax)
+        dendrogram(
+            Z,
+            labels=(
+                countries["CountryCode"].values
+                if (countries is not None and "CountryCode" in countries.columns)
+                else None
+            ),
+            leaf_rotation=90,
+            color_threshold=cut_threshold,
+            ax=ax,
+        )
 
         if k > 1:
-            ax.axhline(y=cut_threshold, color='red', linestyle='--', label=f'Cut = {cut_threshold:.2f}')
+            ax.axhline(
+                y=cut_threshold,
+                color="red",
+                linestyle="--",
+                label=f"Cut = {cut_threshold:.2f}",
+            )
             ax.legend()
-        ax.set_title(f'k = {k}', fontsize=24)
-        ax.set_xlabel('Country Code' if countries is not None else 'Index')
-        ax.set_ylabel('Distance')
+        ax.set_title(f"k = {k}", fontsize=24)
+        ax.set_xlabel("Country Code" if countries is not None else "Index")
+        ax.set_ylabel("Distance")
 
     plt.tight_layout()
     plt.show()
@@ -393,8 +672,12 @@ def apply_pca(X, use_pca=False, pca_components=None):
         pca = PCA(n_components=pca_components)
         X_transformed = pca.fit_transform(X)
         # Create DataFrame with columns like PC1, PC2, etc.
-        X_df = pd.DataFrame(X_transformed, columns=[f"PC{i + 1}" for i in range(X_transformed.shape[1])])
-        print(f"PCA applied. Explained variance ratios: {pca.explained_variance_ratio_}")
+        X_df = pd.DataFrame(
+            X_transformed, columns=[f"PC{i + 1}" for i in range(X_transformed.shape[1])]
+        )
+        print(
+            f"PCA applied. Explained variance ratios: {pca.explained_variance_ratio_}"
+        )
         return X_transformed, X_df, pca
     else:
         if isinstance(X, pd.DataFrame):
@@ -435,7 +718,9 @@ def attach_cluster_labels(X_df, countries, cluster_labels):
       df_combined: DataFrame with country info (if provided), features, and a "Cluster" column.
     """
     if countries is not None:
-        df_combined = pd.concat([countries.reset_index(drop=True), X_df.reset_index(drop=True)], axis=1)
+        df_combined = pd.concat(
+            [countries.reset_index(drop=True), X_df.reset_index(drop=True)], axis=1
+        )
     else:
         df_combined = X_df.copy()
     df_combined["Cluster"] = cluster_labels
@@ -451,7 +736,7 @@ def plot_dendrogram(X, countries, k_clusters):
       countries: DataFrame with country info for leaf labels (expects a "CountryCode" column); can be None.
       k_clusters: Number of clusters to display; used to compute a cut threshold.
     """
-    Z = linkage(X, method='ward')
+    Z = linkage(X, method="ward")
     plt.figure(figsize=(12, 8))
     if countries is not None and "CountryCode" in countries.columns:
         leaf_labels = countries["CountryCode"].values
@@ -463,12 +748,11 @@ def plot_dendrogram(X, countries, k_clusters):
     # Compute cut threshold so that there are k_clusters clusters
     cut_threshold = Z[-(k_clusters - 1), 2]
 
-    dendrogram(Z,
-               labels=leaf_labels,
-               leaf_rotation=90,
-               color_threshold=cut_threshold)
+    dendrogram(Z, labels=leaf_labels, leaf_rotation=90, color_threshold=cut_threshold)
 
-    plt.axhline(y=cut_threshold, color='r', linestyle='--', label=f'Cut at {cut_threshold:.2f}')
+    plt.axhline(
+        y=cut_threshold, color="r", linestyle="--", label=f"Cut at {cut_threshold:.2f}"
+    )
     plt.title(f"Hierarchical Clustering Dendrogram for {k_clusters} Clusters")
     plt.xlabel(xlabel)
     plt.ylabel("Distance")
@@ -493,7 +777,9 @@ def plot_tsne(X, df, countries, k_clusters):
 
     # Basic t-SNE scatterplot colored by cluster
     plt.figure(figsize=(8, 6))
-    sns.scatterplot(data=df, x="TSNE-1", y="TSNE-2", hue="Cluster", palette="tab10", s=100)
+    sns.scatterplot(
+        data=df, x="TSNE-1", y="TSNE-2", hue="Cluster", palette="tab10", s=100
+    )
     plt.title("t‑SNE Visualization of Clusters")
     plt.show()
 
@@ -501,11 +787,20 @@ def plot_tsne(X, df, countries, k_clusters):
     if countries is not None and "CountryName" in countries.columns:
         colors = sns.color_palette("Set1", n_colors=k_clusters)
         plt.figure(figsize=(12, 10))
-        plt.scatter(df["TSNE-1"], df["TSNE-2"], c=df["Cluster"], cmap="Set1", s=150, alpha=0.3)
+        plt.scatter(
+            df["TSNE-1"], df["TSNE-2"], c=df["Cluster"], cmap="Set1", s=150, alpha=0.3
+        )
         for _, row in df.iterrows():
-            plt.text(row["TSNE-1"], row["TSNE-2"], row["CountryName"],
-                     color=colors[int(row["Cluster"])],
-                     fontsize=12, fontweight='bold', ha='center', va='center')
+            plt.text(
+                row["TSNE-1"],
+                row["TSNE-2"],
+                row["CountryName"],
+                color=colors[int(row["Cluster"])],
+                fontsize=12,
+                fontweight="bold",
+                ha="center",
+                va="center",
+            )
         plt.title("t‑SNE with Country Codes Colored by Cluster")
         plt.xlabel("TSNE-1")
         plt.ylabel("TSNE-2")
@@ -530,12 +825,7 @@ def plot_pca(X_df, countries, cluster_labels):
 
     plt.figure(figsize=(8, 6))
     sns.scatterplot(
-        data=df_pca,
-        x="PC1",
-        y="PC2",
-        hue="Cluster",
-        palette="tab10",
-        s=100
+        data=df_pca, x="PC1", y="PC2", hue="Cluster", palette="tab10", s=100
     )
     plt.title("PCA Visualization (First Two Components)")
     plt.xlabel("PC1")
@@ -560,21 +850,29 @@ def compute_dunn_index(X, labels):
     min_intercluster = np.inf
     for i in range(len(clusters)):
         for j in range(i + 1, len(clusters)):
-            distances = cdist(clusters[i], clusters[j], metric='euclidean')
+            distances = cdist(clusters[i], clusters[j], metric="euclidean")
             min_intercluster = min(min_intercluster, distances.min())
 
     max_intracluster = 0
     for cluster in clusters:
         if len(cluster) > 1:
-            intra_dists = cdist(cluster, cluster, metric='euclidean')
+            intra_dists = cdist(cluster, cluster, metric="euclidean")
             max_intracluster = max(max_intracluster, intra_dists.max())
 
     return min_intercluster / max_intracluster if max_intracluster > 0 else np.nan
 
 
-def run_clustering_analysis(X, countries=None, k_clusters=3, use_pca=False, pca_components=None,
-                            plot_dendrogram_flag=True, plot_tsne_flag=True, plot_pca_flag=False,
-                            compute_validation=True):
+def run_clustering_analysis(
+    X,
+    countries=None,
+    k_clusters=3,
+    use_pca=False,
+    pca_components=None,
+    plot_dendrogram_flag=True,
+    plot_tsne_flag=True,
+    plot_pca_flag=False,
+    compute_validation=True,
+):
     """
     Wrapper function to run the full clustering analysis.
 
@@ -618,8 +916,12 @@ def run_clustering_analysis(X, countries=None, k_clusters=3, use_pca=False, pca_
     # Step 7: Compute cluster validation indices
     indices = {}
     if compute_validation:
-        indices["Davies-Bouldin Index"] = davies_bouldin_score(X_processed, cluster_labels)
-        indices["Calinski-Harabasz Index"] = calinski_harabasz_score(X_processed, cluster_labels)
+        indices["Davies-Bouldin Index"] = davies_bouldin_score(
+            X_processed, cluster_labels
+        )
+        indices["Calinski-Harabasz Index"] = calinski_harabasz_score(
+            X_processed, cluster_labels
+        )
         indices["Dunn Index"] = compute_dunn_index(X_processed, cluster_labels)
         print("Validation Indices:")
         for key, value in indices.items():
@@ -627,7 +929,9 @@ def run_clustering_analysis(X, countries=None, k_clusters=3, use_pca=False, pca_
 
     # Print clusters mapped to countries
     if countries is not None and "CountryName" in countries.columns:
-        cluster_map = df_combined.groupby("Cluster")["CountryName"].apply(list).to_dict()
+        cluster_map = (
+            df_combined.groupby("Cluster")["CountryName"].apply(list).to_dict()
+        )
         print("Cluster mapping:")
         for cluster, country_list in cluster_map.items():
             print(f"Cluster {cluster}: {', '.join(country_list)}")
