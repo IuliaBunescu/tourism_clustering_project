@@ -388,7 +388,7 @@ def detect_kmeans_outliers(
     )
 
     # 5) Choose best_k based on max inertia (as per provided snippet)
-    best_k = cluster_range[list(inertia).index(max(inertia))]
+    best_k = cluster_range[list(silhouette_scores).index(max(silhouette_scores))]
 
     # 6) Run final K-Means
     kmeans_final = KMeans(
